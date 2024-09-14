@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
     /// Preparing thread and arguement arrays
     pthread_t threads[num_threads];
     ThreadArgs args[num_threads];
+    /// Set size for each Chunk (thread)
     long long chunk_size = N / num_threads;
     
     /// Loop to create threads and assigning range to sum for each thread 

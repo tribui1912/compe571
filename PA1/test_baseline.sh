@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #compile sum_baseline.c
-gcc -o sum_baseline.o sum_baseline.c
+gcc -O2 -o sum_baseline.o sum_baseline.c
 
 #test value
 values=(100000000 1000000000 10000000000)

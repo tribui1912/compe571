@@ -1,64 +1,40 @@
-import re
 import matplotlib.pyplot as plt
-import math
+import re
 
+# Initialize data structures
+data = {100000000: {}, 1000000000: {}, 10000000000: {}}
 
-### Parsing the file for graph data 
-def parse_results(filename):
-    results = {}
-    current_n = None
-    current_threads = None
-    
-    with open(filename, 'r') as f:
-        for line in f:
-            if line.startswith("Testing with N ="):
-                match = re.search(r'N = (\d+) and threads = (\d+)', line)
-                if match:
-                    current_n = int(match.group(1))
-                    current_threads = int(match.group(2))
-                    if current_n not in results:
-                        results[current_n] = {}
-            elif line.startswith("real"):
-                time_parts = line.split()
-                if len(time_parts) > 1:
-                    time_str = time_parts[1]
-                    try:
-                        minutes, seconds = time_str.split('m')
-                        seconds = seconds.rstrip('s')
-                        time = float(minutes) * 60 + float(seconds)
-                        if current_n is not None and current_threads is not None:
-                            results[current_n][current_threads] = time
-                    except ValueError as e:
-                        print(f"Error parsing time: {time_str}. Error: {e}")
-    
-    return results
+# Read data from file
+with open('sum_multithreaded_times.txt', 'r') as f:
+    for line in f:
+        match = re.match(r'N = (\d+), Threads = (\d+), Time = (\d+)m(\d+\.\d+)s', line)
+        if match:
+            n, threads, minutes, seconds = map(float, match.groups())
+            time = minutes * 60 + seconds
+            data[int(n)][int(threads)] = time
 
-### Plot the data
-def plot_results(results):
-    plt.figure(figsize=(12, 7))
-    
-    for n in sorted(results.keys()):
-        thread_counts = sorted(results[n].keys())
-        times = [results[n][t] for t in thread_counts]
-        plt.plot(thread_counts, times, marker='o', label=f'N = 10^{int(math.log10(n))}')
-    
-    plt.xlabel('Number of Threads')
-    plt.ylabel('Execution Time (seconds)')
-    plt.title('Multithreaded Sum Performance')
-    plt.legend()
-    plt.xscale('linear')
-    plt.yscale('log')
-    plt.xticks([2, 4, 8])
-    plt.grid(True)
-    plt.savefig('sum_multithreaded_performance.png')
-    plt.close()
+# Prepare plot
+plt.figure(figsize=(12, 6))
+markers = ['o', 's', '^']
+colors = ['b', 'g', 'r']
 
-# Main execution
-try:
-    results = parse_results('sum_multithreaded_results.txt')
-    if not results:
-        raise ValueError("No data was parsed from the file")
-    plot_results(results)
-    print("Graph has been saved as 'sum_multithreaded_performance.png'")
-except Exception as e:
-    print(f"An error occurred: {e}")
+# Plot data
+for i, (n, thread_data) in enumerate(data.items()):
+    threads = sorted(thread_data.keys())
+    times = [thread_data[t] for t in threads]
+    plt.plot(threads, times, marker=markers[i], color=colors[i], label=f'N = {n}')
+
+# Customize plot
+plt.xlabel('Number of Threads')
+plt.ylabel('Execution Time (seconds)')
+plt.title('Multithreaded Sum Execution Time')
+plt.legend()
+plt.grid(True)
+plt.xscale('log', base=2)
+plt.yscale('log')
+
+# Save plot
+plt.savefig('multithreaded_sum_performance.png')
+plt.close()
+
+print("Graph has been saved as 'multithreaded_sum_performance.png'")

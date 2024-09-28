@@ -1,27 +1,54 @@
 Testing with N = 100000000 and threads = 2
-Test passed
+
+real	0m0.269s
+user	0m0.247s
+sys	0m0.002s
 ------------------------
 Testing with N = 100000000 and threads = 4
-Test passed
+
+real	0m0.071s
+user	0m0.254s
+sys	0m0.002s
 ------------------------
 Testing with N = 100000000 and threads = 8
-Test passed
+
+real	0m0.058s
+user	0m0.379s
+sys	0m0.001s
 ------------------------
 Testing with N = 1000000000 and threads = 2
-Test passed
+
+real	0m1.158s
+user	0m2.260s
+sys	0m0.002s
 ------------------------
 Testing with N = 1000000000 and threads = 4
-Test passed
+
+real	0m0.622s
+user	0m2.401s
+sys	0m0.003s
 ------------------------
 Testing with N = 1000000000 and threads = 8
-Test passed
+
+real	0m0.578s
+user	0m3.831s
+sys	0m0.003s
 ------------------------
 Testing with N = 10000000000 and threads = 2
-Test passed
+
+real	0m11.450s
+user	0m22.838s
+sys	0m0.027s
 ------------------------
 Testing with N = 10000000000 and threads = 4
-Test passed
+
+real	0m6.052s
+user	0m23.747s
+sys	0m0.017s
 ------------------------
 Testing with N = 10000000000 and threads = 8
-Test passed
+
+real	0m5.677s
+user	0m35.606s
+sys	0m0.019s
 ------------------------

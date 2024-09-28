@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 import re
+import os
 
 def parse_results(filename):
     with open(filename, 'r') as f:
         content = f.read()
 
-    # Regular expression to extract N, thread count, and execution time
     pattern = r"Testing with N = (\d+) and threads = (\d+)\s+real\s+(\d+)m([\d.]+)s"
     matches = re.findall(pattern, content)
 
@@ -14,56 +14,50 @@ def parse_results(filename):
         N, threads, minutes, seconds = match
         N = int(N)
         threads = int(threads)
-        # Convert time to seconds
         time = float(minutes) * 60 + float(seconds)
         
         if N not in data:
             data[N] = {'threads': [], 'times': []}
         data[N]['threads'].append(threads)
-        data[N]['times'].append(time)
+        data[N]['times'].append(round(time, 3))
 
     return data
 
-# Parse the results
-data = parse_results('sum_multithreaded_results.txt')
+def create_graph(data):
+    plt.figure(figsize=(12, 8))
+    colors = ['b', 'g', 'r']
+    markers = ['o', 's', '^']
 
-# Plotting execution time
-plt.figure(figsize=(12, 7))
-for N, values in data.items():
-    line, = plt.plot(values['threads'], values['times'], marker='o', label=f'N={N}')
-    for x, y in zip(values['threads'], values['times']):
-        # Annotate each point with the time value (3 decimal places)
-        plt.annotate(f'{y:.3f}', (x, y), textcoords="offset points", xytext=(0,10), ha='center')
+    for i, (N, values) in enumerate(data.items()):
+        plt.plot(values['threads'], values['times'], 
+                 color=colors[i % len(colors)], 
+                 marker=markers[i % len(markers)], 
+                 label=f'N = {N}')
 
-plt.xlabel('Number of Threads')
-plt.ylabel('Execution Time (seconds)')
-plt.title('Multithreaded Sum Performance')
-plt.legend()
-plt.xscale('log', base=2)  # Use log scale for x-axis
-plt.yscale('log')  # Use log scale for y-axis
-plt.grid(True)
-plt.tight_layout()
+        for x, y in zip(values['threads'], values['times']):
+            plt.annotate(f'{y:.3f}', (x, y), textcoords="offset points", 
+                         xytext=(0,10), ha='center', fontsize=8)
 
-plt.savefig('sum_performance.png', dpi=300)
-plt.close()
+    plt.xlabel('Number of Threads')
+    plt.ylabel('Execution Time (seconds)')
+    plt.title('Multithreaded Performance')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.xscale('log', base=2)
+    plt.yscale('log')
+    plt.xticks([2, 4, 8])
+    plt.gca().xaxis.set_major_formatter(plt.ScalarFormatter())
+    plt.tight_layout()
+    plt.savefig('multithreaded_performance.png', dpi=300)
+    plt.close()
 
-# Plotting speedup
-plt.figure(figsize=(12, 7))
-for N, values in data.items():
-    baseline = values['times'][0]  # Time for 2 threads (first entry)
-    speedup = [baseline / t for t in values['times']]
-    line, = plt.plot(values['threads'], speedup, marker='o', label=f'N={N}')
-    for x, y in zip(values['threads'], speedup):
-        # Annotate each point with the speedup value (3 decimal places)
-        plt.annotate(f'{y:.3f}', (x, y), textcoords="offset points", xytext=(0,10), ha='center')
+if __name__ == "__main__":
+    file_path = 'sum_multithreaded_results.txt'
+    if not os.path.exists(file_path):
+        print(f"Error: File not found at '{file_path}'")
+        print(f"Current working directory: {os.getcwd()}")
+        exit(1)
 
-plt.xlabel('Number of Threads')
-plt.ylabel('Speedup')
-plt.title('Speedup vs Number of Threads')
-plt.legend()
-plt.xscale('log', base=2)  # Use log scale for x-axis
-plt.grid(True)
-plt.tight_layout()
-
-plt.savefig('multithreaded_performance.png', dpi=300)
-plt.close()
+    data = parse_results(file_path)
+    create_graph(data)
+    print("Graph has been saved as 'multithreaded_performance.png'")

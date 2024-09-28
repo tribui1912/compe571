@@ -2,56 +2,49 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-/// Create struct for passing arguement to each thread 
 typedef struct {
-    long long start, end;
-    long long partial_sum;
-} ThreadArgs;
+    unsigned long long start;
+    unsigned long long end;
+    unsigned long long partial_sum;
+} ThreadData;
 
-/// Sum using for each thread
-void* sum_range(void* arg) {
-    ThreadArgs* args = (ThreadArgs*)arg;
-    args->partial_sum = 0;
-    for (long long i = args->start; i < args->end; i++) {
-        args->partial_sum += i;
+void *calculate_partial_sum(void *arg) {
+    ThreadData *data = (ThreadData *)arg;
+    data->partial_sum = 0;
+    for (unsigned long long i = data->start; i < data->end; i++) {
+        data->partial_sum += i;
     }
     return NULL;
 }
 
-/// Main function
 int main(int argc, char *argv[]) {
-    /// Checking commmand-line arguement 
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <N> <num_threads>\n", argv[0]);
         return 1;
     }
-    
-    /// Parsing arguement 
-    long long N = atoll(argv[1]);
+
+    unsigned long long N = strtoull(argv[1], NULL, 10);
     int num_threads = atoi(argv[2]);
-    
-    /// Preparing thread and arguement arrays
-    pthread_t threads[num_threads];
-    ThreadArgs args[num_threads];
-    /// Set size for each Chunk (thread)
-    long long chunk_size = N / num_threads;
-    
-    /// Loop to create threads and assigning range to sum for each thread 
+
+    pthread_t *threads = malloc(num_threads * sizeof(pthread_t));
+    ThreadData *thread_data = malloc(num_threads * sizeof(ThreadData));
+    unsigned long long chunk_size = N / num_threads;
+
     for (int i = 0; i < num_threads; i++) {
-        args[i].start = i * chunk_size;
-        args[i].end = (i == num_threads - 1) ? N : (i + 1) * chunk_size;
-        pthread_create(&threads[i], NULL, sum_range, &args[i]);
+        thread_data[i].start = i * chunk_size;
+        thread_data[i].end = (i == num_threads - 1) ? N : (i + 1) * chunk_size;
+        pthread_create(&threads[i], NULL, calculate_partial_sum, &thread_data[i]);
     }
-    
-    /// Joining thread and adding up the sum results
-    long long total_sum = 0;
+
+    unsigned long long total_sum = 0;
     for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
-        total_sum += args[i].partial_sum;
+        total_sum += thread_data[i].partial_sum;
     }
 
-    /// Remove for checking the total of sum
-    /// printf("Sum: %lld\n", total_sum);
+    printf("Sum to %llu using %d threads is: %llu\n", N, num_threads, total_sum);
+
+    free(threads);
+    free(thread_data);
     return 0;
 }
-

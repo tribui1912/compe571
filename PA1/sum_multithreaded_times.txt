@@ -1,0 +1,9 @@
+N = 100000000, Threads = 2, Time = 0m0.133s
+N = 100000000, Threads = 4, Time = 0m0.202s
+N = 100000000, Threads = 8, Time = 0m0.194s
+N = 1000000000, Threads = 2, Time = 0m1.181s
+N = 1000000000, Threads = 4, Time = 0m1.965s
+N = 1000000000, Threads = 8, Time = 0m1.714s
+N = 10000000000, Threads = 2, Time = 0m25.813s
+N = 10000000000, Threads = 4, Time = 0m19.798s
+N = 10000000000, Threads = 8, Time = 0m17.549s

@@ -3,9 +3,12 @@
 */*.txt
 
 */*.png
+<<<<<<< HEAD
 
 */*/*.o
 
 */*/*.txt
 
 */*/*.png
+=======
+>>>>>>> refs/remotes/origin/main

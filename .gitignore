@@ -2,6 +2,8 @@
 
 */*.txt
 
+*/response_times_*.txt
+
 */*.png
 
 */*/*.o

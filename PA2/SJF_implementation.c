@@ -48,105 +48,89 @@ void myfunction(int param){
 }
 /************************************************************************************************/
 
+struct Process {
+    pid_t pid;
+    int *running;
+    const char *name;
+    int workload;
+    struct timeval creation_time;
+    struct timeval first_run_time;
+};
+
+long get_elapsed_time(struct timeval start, struct timeval end) {
+    return (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
+}
+
 int main(int argc, char const *argv[])
 {
-	pid_t pid1, pid2, pid3, pid4;
-	int running1, running2, running3, running4;
+    pid_t pid1, pid2, pid3, pid4;
+    int running1 = 1, running2 = 1, running3 = 1, running4 = 1;
+    struct timeval current_time;
 
-	pid1 = fork();
+    gettimeofday(&current_time, NULL);
+    pid1 = fork();
+    if (pid1 == 0) {
+        myfunction(WORKLOAD1);
+        exit(0);
+    }
+    kill(pid1, SIGSTOP);
 
-	if (pid1 == 0){
+    pid2 = fork();
+    if (pid2 == 0) {
+        myfunction(WORKLOAD2);
+        exit(0);
+    }
+    kill(pid2, SIGSTOP);
 
-		myfunction(WORKLOAD1);
+    pid3 = fork();
+    if (pid3 == 0) {
+        myfunction(WORKLOAD3);
+        exit(0);
+    }
+    kill(pid3, SIGSTOP);
 
-		exit(0);
-	}
-	kill(pid1, SIGSTOP);
+    pid4 = fork();
+    if (pid4 == 0) {
+        myfunction(WORKLOAD4);
+        exit(0);
+    }
+    kill(pid4, SIGSTOP);
 
-	pid2 = fork();
+    struct Process processes[] = {
+        {pid1, &running1, "WORKLOAD1", WORKLOAD1, current_time, {0}},
+        {pid2, &running2, "WORKLOAD2", WORKLOAD2, current_time, {0}},
+        {pid3, &running3, "WORKLOAD3", WORKLOAD3, current_time, {0}},
+        {pid4, &running4, "WORKLOAD4", WORKLOAD4, current_time, {0}}
+    };
+    int num_processes = sizeof(processes) / sizeof(processes[0]);
 
-	if (pid2 == 0){
-
-		myfunction(WORKLOAD2);
-
-		exit(0);
-	}
-	kill(pid2, SIGSTOP);
-
-	pid3 = fork();
-
-	if (pid3 == 0){
-
-		myfunction(WORKLOAD3);
-
-		exit(0);
-	}
-	kill(pid3, SIGSTOP);
-
-	pid4 = fork();
-
-	if (pid4 == 0){
-
-		myfunction(WORKLOAD4);
-
-		exit(0);
-	}
-	kill(pid4, SIGSTOP);
-
-	/************************************************************************************************ 
-		At this point, all  newly-created child processes are stopped, and ready for scheduling.
-	*************************************************************************************************/
-
-
-
-	/************************************************************************************************
-		- Scheduling code starts here
-		- Below is a sample schedule. (which scheduling algorithm is this?)
-		- For the assignment purposes, you have to replace this part with the other scheduling methods 
-		to be implemented.
-	************************************************************************************************/
-
-    // Array to store workload for each process
-    int workloads[] = {WORKLOAD1, WORKLOAD2, WORKLOAD3, WORKLOAD4};
-    pid_t pids[] = {pid1, pid2, pid3, pid4};
-    int *runnings[] = {&running1, &running2, &running3, &running4};
-
-    // Sort processes based on workload (bubble sort for simplicity)
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3 - i; j++) {
-            if (workloads[j] > workloads[j + 1]) {
-                // Swap workloads
-                int temp_workload = workloads[j];
-                workloads[j] = workloads[j + 1];
-                workloads[j + 1] = temp_workload;
-
-                // Swap PIDs
-                pid_t temp_pid = pids[j];
-                pids[j] = pids[j + 1];
-                pids[j + 1] = temp_pid;
-
-                // Swap running pointers
-                int *temp_running = runnings[j];
-                runnings[j] = runnings[j + 1];
-                runnings[j + 1] = temp_running;
+    // Sort processes based on workload (bubble sort)
+    for (int i = 0; i < num_processes - 1; i++) {
+        for (int j = 0; j < num_processes - i - 1; j++) {
+            if (processes[j].workload > processes[j + 1].workload) {
+                struct Process temp = processes[j];
+                processes[j] = processes[j + 1];
+                processes[j + 1] = temp;
             }
         }
     }
 
-    // Execute processes in sorted order
-    for (int i = 0; i < 4; i++) {
-        while (*runnings[i] > 0) {
-            kill(pids[i], SIGCONT);
-            usleep(1000);  // Let the process run for a short time
-            kill(pids[i], SIGSTOP);
-            waitpid(pids[i], runnings[i], WNOHANG);
-        }
-        printf("Process with PID %d (workload: %d) has completed\n", pids[i], workloads[i]);
-    }
-	
-	/************************************************************************************************
-		- Scheduling code ends here
-	************************************************************************************************/
+    for (int i = 0; i < num_processes; i++) {
+        gettimeofday(&processes[i].first_run_time, NULL);
+        long response_time = get_elapsed_time(processes[i].creation_time, processes[i].first_run_time);
+        printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
 
-	return 0;
+        printf("Starting process %s (workload: %d)\n", processes[i].name, processes[i].workload);
+        
+        while (*processes[i].running > 0) {
+            kill(processes[i].pid, SIGCONT);
+            usleep(1000);
+            kill(processes[i].pid, SIGSTOP);
+            waitpid(processes[i].pid, processes[i].running, WNOHANG);
+        }
+        
+        printf("Process %s has completed\n", processes[i].name);
+    }
+
+    return 0;
 }

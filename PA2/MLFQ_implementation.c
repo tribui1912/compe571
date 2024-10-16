@@ -53,49 +53,49 @@ struct Process {
     int *running;
     const char *name;
     int in_first_queue;
+    struct timeval creation_time;
+    struct timeval first_run_time;
+    int has_run;
 };
+
+long get_elapsed_time(struct timeval start, struct timeval end) {
+    return (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
+}
 
 int main(int argc, char const *argv[])
 {
 	pid_t pid1, pid2, pid3, pid4;
 	int running1 = 1, running2 = 1, running3 = 1, running4 = 1;
+	struct timeval current_time;
 
 	pid1 = fork();
-
+	gettimeofday(&current_time, NULL);
 	if (pid1 == 0){
-
 		myfunction(WORKLOAD1);
-
 		exit(0);
 	}
 	kill(pid1, SIGSTOP);
 
 	pid2 = fork();
-
+	gettimeofday(&current_time, NULL);
 	if (pid2 == 0){
-
 		myfunction(WORKLOAD2);
-
 		exit(0);
 	}
 	kill(pid2, SIGSTOP);
 
 	pid3 = fork();
-
+	gettimeofday(&current_time, NULL);
 	if (pid3 == 0){
-
 		myfunction(WORKLOAD3);
-
 		exit(0);
 	}
 	kill(pid3, SIGSTOP);
 
 	pid4 = fork();
-
+	gettimeofday(&current_time, NULL);
 	if (pid4 == 0){
-
 		myfunction(WORKLOAD4);
-
 		exit(0);
 	}
 	kill(pid4, SIGSTOP);
@@ -107,56 +107,62 @@ int main(int argc, char const *argv[])
 
 
 	/************************************************************************************************
-		- Scheduling code starts here
-		- Below is a sample schedule. (which scheduling algorithm is this?)
-		- For the assignment purposes, you have to replace this part with the other scheduling methods 
-		to be implemented.
+			- Scheduling code starts here
+			- Below is a sample schedule. (which scheduling algorithm is this?)
+			- For the assignment purposes, you have to replace this part with the other scheduling methods 
+			to be implemented.
 	************************************************************************************************/
 
-    struct Process processes[] = {
-        {pid1, &running1, "WORKLOAD1", 1},
-        {pid2, &running2, "WORKLOAD2", 1},
-        {pid3, &running3, "WORKLOAD3", 1},
-        {pid4, &running4, "WORKLOAD4", 1}
-    };
-    int num_processes = sizeof(processes) / sizeof(processes[0]);
-    int processes_in_first_queue = num_processes;
+	struct Process processes[] = {
+		{pid1, &running1, "WORKLOAD1", 1, current_time, {0}, 0},
+		{pid2, &running2, "WORKLOAD2", 1, current_time, {0}, 0},
+		{pid3, &running3, "WORKLOAD3", 1, current_time, {0}, 0},
+		{pid4, &running4, "WORKLOAD4", 1, current_time, {0}, 0}
+	};
+	int num_processes = sizeof(processes) / sizeof(processes[0]);
+	int processes_in_first_queue = num_processes;
 
-    while (processes_in_first_queue > 0 || 
-           (running1 > 0 || running2 > 0 || running3 > 0 || running4 > 0)) {
-        
-        // First level queue (Round Robin)
-        for (int i = 0; i < num_processes; i++) {
-            if (processes[i].in_first_queue && *(processes[i].running) > 0) {
-                printf("Running process %s in first queue\n", processes[i].name);
-                kill(processes[i].pid, SIGCONT);
-                usleep(QUANTUM1);
-                kill(processes[i].pid, SIGSTOP);
-                
-                waitpid(processes[i].pid, processes[i].running, WNOHANG);
-                
-                if (*(processes[i].running) > 0) {
-                    // Process didn't finish, move to second queue
-                    processes[i].in_first_queue = 0;
-                    processes_in_first_queue--;
-                    printf("Moving process %s to second queue\n", processes[i].name);
-                } else {
-                    printf("Process %s completed in first queue\n", processes[i].name);
-                    processes_in_first_queue--;
-                }
-            }
-        }
-        
-        // Second level queue (FCFS)
-        for (int i = 0; i < num_processes; i++) {
-            if (!processes[i].in_first_queue && *(processes[i].running) > 0) {
-                printf("Running process %s in second queue\n", processes[i].name);
-                kill(processes[i].pid, SIGCONT);
-                waitpid(processes[i].pid, processes[i].running, 0);  // Wait for process to complete
-                printf("Process %s completed in second queue\n", processes[i].name);
-            }
-        }
-    }
+	while (processes_in_first_queue > 0 || 
+		   (running1 > 0 || running2 > 0 || running3 > 0 || running4 > 0)) {
+		
+		// First level queue (Round Robin)
+		for (int i = 0; i < num_processes; i++) {
+			if (processes[i].in_first_queue && *(processes[i].running) > 0) {
+				if (!processes[i].has_run) {
+					gettimeofday(&processes[i].first_run_time, NULL);
+					processes[i].has_run = 1;
+					long response_time = get_elapsed_time(processes[i].creation_time, processes[i].first_run_time);
+					printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
+				}
+
+				printf("Running process %s in first queue\n", processes[i].name);
+				kill(processes[i].pid, SIGCONT);
+				usleep(QUANTUM1);
+				kill(processes[i].pid, SIGSTOP);
+				
+				waitpid(processes[i].pid, processes[i].running, WNOHANG);
+				
+				if (*(processes[i].running) > 0) {
+					processes[i].in_first_queue = 0;
+					processes_in_first_queue--;
+					printf("Moving process %s to second queue\n", processes[i].name);
+				} else {
+					printf("Process %s completed in first queue\n", processes[i].name);
+					processes_in_first_queue--;
+				}
+			}
+		}
+		
+		// Second level queue (FCFS)
+		for (int i = 0; i < num_processes; i++) {
+			if (!processes[i].in_first_queue && *(processes[i].running) > 0) {
+				printf("Running process %s in second queue\n", processes[i].name);
+				kill(processes[i].pid, SIGCONT);
+				waitpid(processes[i].pid, processes[i].running, 0);
+				printf("Process %s completed in second queue\n", processes[i].name);
+			}
+		}
+	}
 	/************************************************************************************************
 		- Scheduling code ends here
 	************************************************************************************************/

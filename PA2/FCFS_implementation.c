@@ -48,86 +48,77 @@ void myfunction(int param){
 }
 /************************************************************************************************/
 
+struct Process {
+    pid_t pid;
+    int *running;
+    const char *name;
+    struct timeval creation_time;
+    struct timeval first_run_time;
+};
+
+long get_elapsed_time(struct timeval start, struct timeval end) {
+    return (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
+}
+
 int main(int argc, char const *argv[])
 {
-	pid_t pid1, pid2, pid3, pid4;
-	int running1, running2, running3, running4;
+    pid_t pid1, pid2, pid3, pid4;
+    int running1 = 1, running2 = 1, running3 = 1, running4 = 1;
+    struct timeval current_time;
 
-	pid1 = fork();
+    gettimeofday(&current_time, NULL);
+    pid1 = fork();
+    if (pid1 == 0) {
+        myfunction(WORKLOAD1);
+        exit(0);
+    }
+    kill(pid1, SIGSTOP);
 
-	if (pid1 == 0){
+    pid2 = fork();
+    if (pid2 == 0) {
+        myfunction(WORKLOAD2);
+        exit(0);
+    }
+    kill(pid2, SIGSTOP);
 
-		myfunction(WORKLOAD1);
+    pid3 = fork();
+    if (pid3 == 0) {
+        myfunction(WORKLOAD3);
+        exit(0);
+    }
+    kill(pid3, SIGSTOP);
 
-		exit(0);
-	}
-	kill(pid1, SIGSTOP);
+    pid4 = fork();
+    if (pid4 == 0) {
+        myfunction(WORKLOAD4);
+        exit(0);
+    }
+    kill(pid4, SIGSTOP);
 
-	pid2 = fork();
+    struct Process processes[] = {
+        {pid1, &running1, "WORKLOAD1", current_time, {0}},
+        {pid2, &running2, "WORKLOAD2", current_time, {0}},
+        {pid3, &running3, "WORKLOAD3", current_time, {0}},
+        {pid4, &running4, "WORKLOAD4", current_time, {0}}
+    };
+    int num_processes = sizeof(processes) / sizeof(processes[0]);
 
-	if (pid2 == 0){
+    for (int i = 0; i < num_processes; i++) {
+        gettimeofday(&processes[i].first_run_time, NULL);
+        long response_time = get_elapsed_time(processes[i].creation_time, processes[i].first_run_time);
+        printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
 
-		myfunction(WORKLOAD2);
-
-		exit(0);
-	}
-	kill(pid2, SIGSTOP);
-
-	pid3 = fork();
-
-	if (pid3 == 0){
-
-		myfunction(WORKLOAD3);
-
-		exit(0);
-	}
-	kill(pid3, SIGSTOP);
-
-	pid4 = fork();
-
-	if (pid4 == 0){
-
-		myfunction(WORKLOAD4);
-
-		exit(0);
-	}
-	kill(pid4, SIGSTOP);
-
-	/************************************************************************************************ 
-		At this point, all  newly-created child processes are stopped, and ready for scheduling.
-	*************************************************************************************************/
-
-
-
-	/************************************************************************************************
-		- Scheduling code starts here
-		- Below is a sample schedule. (which scheduling algorithm is this?)
-		- For the assignment purposes, you have to replace this part with the other scheduling methods 
-		to be implemented.
-	************************************************************************************************/
-
-    pid_t pids[] = {pid1, pid2, pid3, pid4};
-    int *runnings[] = {&running1, &running2, &running3, &running4};
-    char *workload_names[] = {"WORKLOAD1", "WORKLOAD2", "WORKLOAD3", "WORKLOAD4"};
-
-    for (int i = 0; i < 4; i++) {
-        printf("Starting process with PID %d (%s)\n", pids[i], workload_names[i]);
+        printf("Starting process %s\n", processes[i].name);
         
-        while (*runnings[i] > 0) {
-            kill(pids[i], SIGCONT);
-            usleep(1000);  // Let the process run for a short time
-            kill(pids[i], SIGSTOP);
-            waitpid(pids[i], runnings[i], WNOHANG);
+        while (*processes[i].running > 0) {
+            kill(processes[i].pid, SIGCONT);
+            usleep(1000);
+            kill(processes[i].pid, SIGSTOP);
+            waitpid(processes[i].pid, processes[i].running, WNOHANG);
         }
         
-        printf("Process with PID %d (%s) has completed\n", pids[i], workload_names[i]);
+        printf("Process %s has completed\n", processes[i].name);
     }
 
-
-
-	/************************************************************************************************
-		- Scheduling code ends here
-	************************************************************************************************/
-
-	return 0;
+    return 0;
 }

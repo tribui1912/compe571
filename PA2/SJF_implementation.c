@@ -53,8 +53,9 @@ struct Process {
     int *running;
     const char *name;
     int workload;
-    struct timeval creation_time;
-    struct timeval first_run_time;
+    struct timeval start_time;
+    struct timeval completion_time;
+    int has_started;
 };
 
 long get_elapsed_time(struct timeval start, struct timeval end) {
@@ -97,10 +98,10 @@ int main(int argc, char const *argv[])
     kill(pid4, SIGSTOP);
 
     struct Process processes[] = {
-        {pid1, &running1, "WORKLOAD1", WORKLOAD1, current_time, {0}},
-        {pid2, &running2, "WORKLOAD2", WORKLOAD2, current_time, {0}},
-        {pid3, &running3, "WORKLOAD3", WORKLOAD3, current_time, {0}},
-        {pid4, &running4, "WORKLOAD4", WORKLOAD4, current_time, {0}}
+        {pid1, &running1, "WORKLOAD1", WORKLOAD1, {0}, {0}, 0},
+        {pid2, &running2, "WORKLOAD2", WORKLOAD2, {0}, {0}, 0},
+        {pid3, &running3, "WORKLOAD3", WORKLOAD3, {0}, {0}, 0},
+        {pid4, &running4, "WORKLOAD4", WORKLOAD4, {0}, {0}, 0}
     };
     int num_processes = sizeof(processes) / sizeof(processes[0]);
 
@@ -116,18 +117,21 @@ int main(int argc, char const *argv[])
     }
 
     for (int i = 0; i < num_processes; i++) {
-        gettimeofday(&processes[i].first_run_time, NULL);
-        long response_time = get_elapsed_time(processes[i].creation_time, processes[i].first_run_time);
-        printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
-
         printf("Starting process %s (workload: %d)\n", processes[i].name, processes[i].workload);
+        
+        gettimeofday(&processes[i].start_time, NULL);
         
         while (*processes[i].running > 0) {
             kill(processes[i].pid, SIGCONT);
+            
             usleep(1000);
             kill(processes[i].pid, SIGSTOP);
             waitpid(processes[i].pid, processes[i].running, WNOHANG);
         }
+        
+        gettimeofday(&processes[i].completion_time, NULL);
+        long turnaround_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
+        printf("Response time for %s: %ld microseconds\n", processes[i].name, turnaround_time);
         
         printf("Process %s has completed\n", processes[i].name);
     }

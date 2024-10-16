@@ -20,12 +20,12 @@ def parse_file(filename):
     return data
 
 # Parse all files
-all_data = [parse_file(f'response_times_{i}.txt') for i in range(5)]
+all_data = [parse_file(f'response_times_{i}.txt') for i in range(6)]  # Change 5 to 6
 
 # Prepare data for plotting
 programs = ['sample_program', 'SJF_implementation', 'FCFS_implementation', 'MLFQ_implementation']
 workloads = ['WORKLOAD1', 'WORKLOAD2', 'WORKLOAD3', 'WORKLOAD4']
-colors = ['red', 'green', 'blue', 'purple']
+colors = {'WORKLOAD1': 'red', 'WORKLOAD2': 'green', 'WORKLOAD3': 'blue', 'WORKLOAD4': 'purple'}
 
 # Find global min and max response times
 global_min = float('inf')
@@ -49,15 +49,17 @@ for idx, program in enumerate(programs):
     else:
         plot_workloads = workloads
     
-    for workload_idx, workload in enumerate(plot_workloads):
+    for workload in plot_workloads:
+        workload_idx = plot_workloads.index(workload)
         times = [data[program][workload_idx][1] for data in all_data]
-        ax.scatter(range(5), times, color=colors[workload_idx], label=workload)
-        ax.plot(range(5), times, color=colors[workload_idx], alpha=0.5)
+        ax.scatter(range(6), times, color=colors[workload], label=workload)  # Change range(5) to range(6)
+        ax.plot(range(6), times, color=colors[workload], alpha=0.5)  # Change range(5) to range(6)
     
     ax.set_title(program)
     ax.set_xlabel('Run Number')
     ax.set_ylabel('Response Time (microseconds)')
-    ax.set_xticks(range(5))
+    ax.set_xticks(range(6))  # Change range(5) to range(6)
+    ax.set_xticklabels(range(6))  # Add this line to ensure all tick labels are shown
     ax.set_yscale('log')  # Set logarithmic scale for y-axis
     ax.set_ylim(max(1, global_min), global_max * 1.1)  # Set y-axis limits, avoiding 0
     ax.legend()

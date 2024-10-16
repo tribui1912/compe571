@@ -53,9 +53,9 @@ struct Process {
     int *running;
     const char *name;
     int in_first_queue;
-    struct timeval creation_time;
-    struct timeval first_run_time;
-    int has_run;
+    struct timeval start_time;
+    struct timeval completion_time;
+    int has_completed;
 };
 
 long get_elapsed_time(struct timeval start, struct timeval end) {
@@ -128,13 +128,6 @@ int main(int argc, char const *argv[])
 		// First level queue (Round Robin)
 		for (int i = 0; i < num_processes; i++) {
 			if (processes[i].in_first_queue && *(processes[i].running) > 0) {
-				if (!processes[i].has_run) {
-					gettimeofday(&processes[i].first_run_time, NULL);
-					processes[i].has_run = 1;
-					long response_time = get_elapsed_time(processes[i].creation_time, processes[i].first_run_time);
-					printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
-				}
-
 				printf("Running process %s in first queue\n", processes[i].name);
 				kill(processes[i].pid, SIGCONT);
 				usleep(QUANTUM1);
@@ -147,6 +140,10 @@ int main(int argc, char const *argv[])
 					processes_in_first_queue--;
 					printf("Moving process %s to second queue\n", processes[i].name);
 				} else {
+					gettimeofday(&processes[i].completion_time, NULL);
+					processes[i].has_completed = 1;
+					long response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
+					printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
 					printf("Process %s completed in first queue\n", processes[i].name);
 					processes_in_first_queue--;
 				}
@@ -159,6 +156,12 @@ int main(int argc, char const *argv[])
 				printf("Running process %s in second queue\n", processes[i].name);
 				kill(processes[i].pid, SIGCONT);
 				waitpid(processes[i].pid, processes[i].running, 0);
+				if (!processes[i].has_completed) {
+					gettimeofday(&processes[i].completion_time, NULL);
+					processes[i].has_completed = 1;
+					long response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
+					printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
+				}
 				printf("Process %s completed in second queue\n", processes[i].name);
 			}
 		}

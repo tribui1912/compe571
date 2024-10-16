@@ -13,7 +13,7 @@ def parse_file(filename):
             current_program = line.split('...')[0].split()[-1]
             data[current_program] = []
         elif 'Response time for' in line:
-            workload = line.split()[3]
+            workload = line.split()[3].strip(':')  # Remove any trailing colon
             time = int(line.split()[-2])
             data[current_program].append((workload, time))
     
@@ -43,7 +43,13 @@ fig.suptitle('Response Times for Different Scheduling Algorithms', fontsize=16)
 for idx, program in enumerate(programs):
     ax = axs[idx // 2, idx % 2]
     
-    for workload_idx, workload in enumerate(workloads):
+    if program == 'SJF_implementation':
+        # For SJF, use the order from the data file
+        plot_workloads = [w for w, _ in all_data[0][program]]
+    else:
+        plot_workloads = workloads
+    
+    for workload_idx, workload in enumerate(plot_workloads):
         times = [data[program][workload_idx][1] for data in all_data]
         ax.scatter(range(5), times, color=colors[workload_idx], label=workload)
         ax.plot(range(5), times, color=colors[workload_idx], alpha=0.5)

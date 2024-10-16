@@ -1,63 +1,63 @@
 Testing with N = 100000000 and num_processes = 2
 The sum of integers from 0 to 100000000 (exclusive) is: 4999999950000000
 
-real	0m0.195s
-user	0m0.113s
-sys	0m0.001s
+real	0m0.265s
+user	0m0.141s
+sys	0m0.002s
 --------------------
 Testing with N = 100000000 and num_processes = 4
 The sum of integers from 0 to 100000000 (exclusive) is: 4999999950000000
 
 real	0m0.027s
-user	0m0.098s
+user	0m0.099s
 sys	0m0.002s
 --------------------
 Testing with N = 100000000 and num_processes = 8
 The sum of integers from 0 to 100000000 (exclusive) is: 4999999950000000
 
-real	0m0.018s
-user	0m0.103s
+real	0m0.016s
+user	0m0.100s
 sys	0m0.003s
 --------------------
 Testing with N = 1000000000 and num_processes = 2
 The sum of integers from 0 to 1000000000 (exclusive) is: 499999999500000000
 
-real	0m0.483s
-user	0m0.958s
-sys	0m0.003s
+real	0m0.482s
+user	0m0.959s
+sys	0m0.002s
 --------------------
 Testing with N = 1000000000 and num_processes = 4
 The sum of integers from 0 to 1000000000 (exclusive) is: 499999999500000000
 
-real	0m0.250s
-user	0m0.982s
+real	0m0.249s
+user	0m0.985s
 sys	0m0.003s
 --------------------
 Testing with N = 1000000000 and num_processes = 8
 The sum of integers from 0 to 1000000000 (exclusive) is: 499999999500000000
 
-real	0m0.130s
-user	0m0.993s
-sys	0m0.005s
+real	0m0.127s
+user	0m0.989s
+sys	0m0.003s
 --------------------
 Testing with N = 10000000000 and num_processes = 2
 The sum of integers from 0 to 10000000000 (exclusive) is: 13106511847580896768
 
-real	0m4.802s
-user	0m9.584s
-sys	0m0.013s
+real	0m4.815s
+user	0m9.583s
+sys	0m0.037s
 --------------------
 Testing with N = 10000000000 and num_processes = 4
 The sum of integers from 0 to 10000000000 (exclusive) is: 13106511847580896768
 
-real	0m2.468s
-user	0m9.836s
-sys	0m0.013s
+real	0m2.466s
+user	0m9.806s
+sys	0m0.031s
 --------------------
 Testing with N = 10000000000 and num_processes = 8
 The sum of integers from 0 to 10000000000 (exclusive) is: 13106511847580896768
 
-real	0m1.261s
-user	0m9.930s
-sys	0m0.018s
+real	0m1.255s
+user	0m9.892s
+sys	0m0.021s
 --------------------

@@ -6,7 +6,7 @@ gcc -o sum_multithreaded.o sum_multithreaded.c -pthread
 # Test values
 N_values=(100000000 1000000000 10000000000)
 thread_counts=(2 4 8)
-
+c
 # Output file
 output_file="sum_multithreaded_results.txt"
 

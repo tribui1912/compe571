@@ -5,19 +5,19 @@ compile_and_run() {
     program=$1
     output_file=$2
 
-    echo "Running $program..." >> $output_file
+    echo "Running $program..." >> "$output_file"
 
     # Compile the program
-    gcc -o $program $program.c
+    gcc -o "${program}.o" "${program}.c"
 
     # Run the program with highest priority and extract response times
-    sudo nice -20 ./$program | grep "Response time" | sort >> $output_file
+    sudo nice -20 ./"${program}.o" | grep "Response time" | sort >> "$output_file"
 
     # Add a newline for readability
-    echo "" >> $output_file
+    echo "" >> "$output_file"
 
     # Clean up
-    rm $program
+    rm "${program}.o"
 }
 
 # Run the entire process 6 times
@@ -27,17 +27,18 @@ do
     response_times_file="response_times_$i.txt"
 
     # Clear the response times file if it exists
-    > $response_times_file
+    > "$response_times_file"
 
-    echo "Run $i" >> $response_times_file
-    echo "======" >> $response_times_file
+    echo "Run $i" >> "$response_times_file"
+    echo "======" >> "$response_times_file"
 
     # Compile and run programs in order with highest priority
-    sudo nice -20 bash -c "
-        compile_and_run sample_program $response_times_file
-        compile_and_run SJF_implementation $response_times_file
-        compile_and_run FCFS_implementation $response_times_file
-        compile_and_run MLFQ_implementation $response_times_file
+    sudo bash -c "
+        $(declare -f compile_and_run)
+        compile_and_run sample_program '$response_times_file'
+        compile_and_run SJF_implementation '$response_times_file'
+        compile_and_run FCFS_implementation '$response_times_file'
+        compile_and_run MLFQ_implementation '$response_times_file'
     "
 
     echo "Run $i completed. Results saved to $response_times_file"

@@ -34,6 +34,16 @@ for data in all_data:
         total_time = sum(time for _, time in data[program])
         total_response_times[program].append(total_time)
 
+# Calculate and print average and standard deviation for each implementation
+for program in programs:
+    avg = np.mean(total_response_times[program]) / 1000  # Convert to milliseconds
+    std_dev = np.std(total_response_times[program]) / 1000  # Convert to milliseconds
+    std_dev_percent = (std_dev / avg) * 100  # Calculate std dev as percentage of mean
+    print(f"{program}:")
+    print(f"  Average: {avg:.2f} milliseconds")
+    print(f"  Standard deviation: {std_dev:.2f} milliseconds ({std_dev_percent:.2f}%)")
+    print()
+
 # Create the plot
 plt.figure(figsize=(12, 8))
 plt.title('Total Response Times for Different Scheduling Algorithms', fontsize=16)
@@ -58,4 +68,3 @@ print(f"Graph saved to {output_path}")
 
 # Remove the comment to display the graph
 # plt.show()
-

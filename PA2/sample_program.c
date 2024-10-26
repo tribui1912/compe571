@@ -13,6 +13,11 @@
 		the time quantum values for Round Robin scheduling for each task.
 *************************************************************************************************/
 
+// #define WORKLOAD1 100000
+// #define WORKLOAD2 100000
+// #define WORKLOAD3 100000
+// #define WORKLOAD4 100000
+
 #define WORKLOAD1 100000
 #define WORKLOAD2 50000
 #define WORKLOAD3 25000
@@ -62,11 +67,19 @@ long get_elapsed_time(struct timeval start, struct timeval end) {
     return (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
 }
 
+struct TimingInfo {
+    struct timeval start;
+    struct timeval end;
+    long total_time;
+    int switch_count;
+};
+
 int main(int argc, char const *argv[])
 {
 	pid_t pid1, pid2, pid3, pid4;
 	int running1 = 1, running2 = 1, running3 = 1, running4 = 1;
 	struct timeval current_time;
+	struct TimingInfo timing = {.total_time = 0, .switch_count = 0};
 
 	gettimeofday(&current_time, NULL);
 	pid1 = fork();
@@ -124,15 +137,24 @@ int main(int argc, char const *argv[])
 					processes[i].has_started = 1;
 				}
 
+				gettimeofday(&timing.start, NULL);
 				kill(processes[i].pid, SIGCONT);
+				gettimeofday(&timing.end, NULL);
+				timing.total_time += get_elapsed_time(timing.start, timing.end);
+				timing.switch_count++;
+
 				usleep(processes[i].quantum);
+
+				gettimeofday(&timing.start, NULL);
 				kill(processes[i].pid, SIGSTOP);
+				gettimeofday(&timing.end, NULL);
+				timing.total_time += get_elapsed_time(timing.start, timing.end);
+				timing.switch_count++;
 
 				if(waitpid(processes[i].pid, processes[i].running, WNOHANG) > 0) {
 					struct timeval finish_time;
 					gettimeofday(&finish_time, NULL);
-					processes[i].response_time = (finish_time.tv_sec * 1000000 + finish_time.tv_usec) - 
-												 (processes[i].start_time.tv_sec * 1000000 + processes[i].start_time.tv_usec);
+					processes[i].response_time = get_elapsed_time(processes[i].start_time, finish_time);
 					printf("Response time for %s: %ld microseconds\n", processes[i].name, processes[i].response_time);
 					printf("Process %s has completed\n", processes[i].name);
 				}
@@ -146,6 +168,10 @@ int main(int argc, char const *argv[])
 		total_response_time += processes[i].response_time;
 	}
 	printf("Average response time: %ld microseconds\n", total_response_time / num_processes);
+
+	printf("Total context switch time: %ld microseconds\n", timing.total_time);
+	printf("Number of context switches: %d\n", timing.switch_count);
+	printf("Average context switch time: %ld microseconds\n", timing.total_time / timing.switch_count);
 
 	return 0;
 }

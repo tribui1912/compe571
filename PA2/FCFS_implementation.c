@@ -13,6 +13,11 @@
 		the time quantum values for Round Robin scheduling for each task.
 *************************************************************************************************/
 
+// #define WORKLOAD1 100000
+// #define WORKLOAD2 100000
+// #define WORKLOAD3 100000
+// #define WORKLOAD4 100000
+
 #define WORKLOAD1 100000
 #define WORKLOAD2 50000
 #define WORKLOAD3 25000
@@ -54,13 +59,20 @@ struct Process {
     const char *name;
     struct timeval start_time;
     struct timeval completion_time;
-    int has_started;  // Add this field
-    long response_time;  // Add this field
+    int has_started;  
+    long response_time;  
 };
 
 long get_elapsed_time(struct timeval start, struct timeval end) {
     return (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_usec - start.tv_usec);
 }
+
+struct TimingInfo {
+    struct timeval start;
+    struct timeval end;
+    long total_time;
+    int switch_count;
+};
 
 int main(int argc, char const *argv[])
 {
@@ -105,29 +117,48 @@ int main(int argc, char const *argv[])
     };
     int num_processes = sizeof(processes) / sizeof(processes[0]);
 
+    struct TimingInfo timing = {.total_time = 0, .switch_count = 0};
+
     for (int i = 0; i < num_processes; i++) {
         printf("Starting process %s\n", processes[i].name);
         
         gettimeofday(&processes[i].start_time, NULL);
-        processes[i].has_started = 1;  // Mark process as started
+        processes[i].has_started = 1;
+
+        gettimeofday(&timing.start, NULL);
         kill(processes[i].pid, SIGCONT);
+        gettimeofday(&timing.end, NULL);
+        timing.total_time += get_elapsed_time(timing.start, timing.end);
+        timing.switch_count++;
 
         while (*processes[i].running > 0) {
             usleep(1000);
+            gettimeofday(&timing.start, NULL);
             kill(processes[i].pid, SIGSTOP);
+            gettimeofday(&timing.end, NULL);
+            timing.total_time += get_elapsed_time(timing.start, timing.end);
+            timing.switch_count++;
+
             waitpid(processes[i].pid, processes[i].running, WNOHANG);
             if (*processes[i].running > 0) {
+                gettimeofday(&timing.start, NULL);
                 kill(processes[i].pid, SIGCONT);
+                gettimeofday(&timing.end, NULL);
+                timing.total_time += get_elapsed_time(timing.start, timing.end);
+                timing.switch_count++;
             }
         }
         
         gettimeofday(&processes[i].completion_time, NULL);
-        processes[i].response_time = (processes[i].completion_time.tv_sec * 1000000 + processes[i].completion_time.tv_usec) - 
-                                     (processes[i].start_time.tv_sec * 1000000 + processes[i].start_time.tv_usec);
+        processes[i].response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
         printf("Response time for %s: %ld microseconds\n", processes[i].name, processes[i].response_time);
         
         printf("Process %s has completed\n", processes[i].name);
     }
+
+    printf("Total context switch time: %ld microseconds\n", timing.total_time);
+    printf("Number of context switches: %d\n", timing.switch_count);
+    printf("Average context switch time: %ld microseconds\n", timing.total_time / timing.switch_count);
 
     return 0;
 }

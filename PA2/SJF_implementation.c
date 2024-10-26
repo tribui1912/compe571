@@ -18,10 +18,10 @@
 #define WORKLOAD3 25000
 #define WORKLOAD4 10000
 
-#define QUANTUM1 1000
-#define QUANTUM2 1000
-#define QUANTUM3 1000
-#define QUANTUM4 1000
+#define QUANTUM1 5000
+#define QUANTUM2 5000
+#define QUANTUM3 5000
+#define QUANTUM4 5000
 
 /************************************************************************************************ 
 					DO NOT CHANGE THE FUNCTION IMPLEMENTATION
@@ -56,6 +56,7 @@ struct Process {
     struct timeval start_time;
     struct timeval completion_time;
     int has_started;
+    long response_time;  // Add this field
 };
 
 long get_elapsed_time(struct timeval start, struct timeval end) {
@@ -119,21 +120,22 @@ int main(int argc, char const *argv[])
     for (int i = 0; i < num_processes; i++) {
         printf("Starting process %s (workload: %d)\n", processes[i].name, processes[i].workload);
         
+        kill(processes[i].pid, SIGCONT);
         gettimeofday(&processes[i].start_time, NULL);
+        processes[i].has_started = 1;
         
         while (*processes[i].running > 0) {
-            kill(processes[i].pid, SIGCONT);
-            
             usleep(1000);
-            kill(processes[i].pid, SIGSTOP);
-            waitpid(processes[i].pid, processes[i].running, WNOHANG);
+            if(waitpid(processes[i].pid, processes[i].running, WNOHANG) > 0) {
+                struct timeval finish_time;
+                gettimeofday(&finish_time, NULL);
+                processes[i].response_time = (finish_time.tv_sec * 1000000 + finish_time.tv_usec) - 
+                                             (processes[i].start_time.tv_sec * 1000000 + processes[i].start_time.tv_usec);
+                printf("Response time for %s: %ld microseconds\n", processes[i].name, processes[i].response_time);
+                printf("Process %s has completed\n", processes[i].name);
+                break;
+            }
         }
-        
-        gettimeofday(&processes[i].completion_time, NULL);
-        long turnaround_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
-        printf("Response time for %s: %ld microseconds\n", processes[i].name, turnaround_time);
-        
-        printf("Process %s has completed\n", processes[i].name);
     }
 
     return 0;

@@ -18,10 +18,10 @@
 #define WORKLOAD3 25000
 #define WORKLOAD4 10000
 
-#define QUANTUM1 1000
-#define QUANTUM2 1000
-#define QUANTUM3 1000
-#define QUANTUM4 1000
+#define QUANTUM1 5000
+#define QUANTUM2 5000
+#define QUANTUM3 5000
+#define QUANTUM4 5000
 
 /************************************************************************************************ 
 					DO NOT CHANGE THE FUNCTION IMPLEMENTATION
@@ -56,6 +56,8 @@ struct Process {
     struct timeval start_time;
     struct timeval completion_time;
     int has_completed;
+    int has_started;  // Add this line
+    long response_time;  // Add this line
 };
 
 long get_elapsed_time(struct timeval start, struct timeval end) {
@@ -67,6 +69,12 @@ int main(int argc, char const *argv[])
 	pid_t pid1, pid2, pid3, pid4;
 	int running1 = 1, running2 = 1, running3 = 1, running4 = 1;
 	struct timeval current_time;
+
+	// Parse command-line argument for quantum
+	int quantum = QUANTUM1;  // Default value
+	if (argc > 1) {
+		quantum = atoi(argv[1]);
+	}
 
 	pid1 = fork();
 	gettimeofday(&current_time, NULL);
@@ -114,10 +122,10 @@ int main(int argc, char const *argv[])
 	************************************************************************************************/
 
 	struct Process processes[] = {
-		{pid1, &running1, "WORKLOAD1", 1, current_time, {0}, 0},
-		{pid2, &running2, "WORKLOAD2", 1, current_time, {0}, 0},
-		{pid3, &running3, "WORKLOAD3", 1, current_time, {0}, 0},
-		{pid4, &running4, "WORKLOAD4", 1, current_time, {0}, 0}
+		{pid1, &running1, "WORKLOAD1", 1, {0}, {0}, 0, 0, 0},  // Initialize has_started and response_time
+		{pid2, &running2, "WORKLOAD2", 1, {0}, {0}, 0, 0, 0},
+		{pid3, &running3, "WORKLOAD3", 1, {0}, {0}, 0, 0, 0},
+		{pid4, &running4, "WORKLOAD4", 1, {0}, {0}, 0, 0, 0}
 	};
 	int num_processes = sizeof(processes) / sizeof(processes[0]);
 	int processes_in_first_queue = num_processes;
@@ -128,9 +136,14 @@ int main(int argc, char const *argv[])
 		// First level queue (Round Robin)
 		for (int i = 0; i < num_processes; i++) {
 			if (processes[i].in_first_queue && *(processes[i].running) > 0) {
+				if (!processes[i].has_started) {
+					gettimeofday(&processes[i].start_time, NULL);
+					processes[i].has_started = 1;
+				}
+
 				printf("Running process %s in first queue\n", processes[i].name);
 				kill(processes[i].pid, SIGCONT);
-				usleep(QUANTUM1);
+				usleep(quantum);  // Use the quantum value from command-line argument
 				kill(processes[i].pid, SIGSTOP);
 				
 				waitpid(processes[i].pid, processes[i].running, WNOHANG);
@@ -142,8 +155,8 @@ int main(int argc, char const *argv[])
 				} else {
 					gettimeofday(&processes[i].completion_time, NULL);
 					processes[i].has_completed = 1;
-					long response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
-					printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
+					processes[i].response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
+					printf("Response time for %s: %ld microseconds\n", processes[i].name, processes[i].response_time);
 					printf("Process %s completed in first queue\n", processes[i].name);
 					processes_in_first_queue--;
 				}
@@ -159,8 +172,8 @@ int main(int argc, char const *argv[])
 				if (!processes[i].has_completed) {
 					gettimeofday(&processes[i].completion_time, NULL);
 					processes[i].has_completed = 1;
-					long response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
-					printf("Response time for %s: %ld microseconds\n", processes[i].name, response_time);
+					processes[i].response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
+					printf("Response time for %s: %ld microseconds\n", processes[i].name, processes[i].response_time);
 				}
 				printf("Process %s completed in second queue\n", processes[i].name);
 			}
@@ -169,6 +182,17 @@ int main(int argc, char const *argv[])
 	/************************************************************************************************
 		- Scheduling code ends here
 	************************************************************************************************/
+
+	// Calculate and print average response time
+	long total_response_time = 0;
+	int completed_processes = 0;
+	for (int i = 0; i < num_processes; i++) {
+		if (processes[i].has_completed) {
+			total_response_time += processes[i].response_time;
+			completed_processes++;
+		}
+	}
+	printf("Average response time: %ld microseconds\n", total_response_time / completed_processes);
 
 	return 0;
 }

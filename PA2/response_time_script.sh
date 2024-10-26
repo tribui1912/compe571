@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Function to compile and run a program
+# Function to compile and run a program with highest priority
 compile_and_run() {
     program=$1
     output_file=$2
@@ -10,8 +10,8 @@ compile_and_run() {
     # Compile the program
     gcc -o $program $program.c
 
-    # Run the program and extract response times
-    ./$program | grep "Response time" | sort >> $output_file
+    # Run the program with highest priority and extract response times
+    sudo nice -20 ./$program | grep "Response time" | sort >> $output_file
 
     # Add a newline for readability
     echo "" >> $output_file
@@ -32,11 +32,13 @@ do
     echo "Run $i" >> $response_times_file
     echo "======" >> $response_times_file
 
-    # Compile and run programs in order
-    compile_and_run sample_program $response_times_file
-    compile_and_run SJF_implementation $response_times_file
-    compile_and_run FCFS_implementation $response_times_file
-    compile_and_run MLFQ_implementation $response_times_file
+    # Compile and run programs in order with highest priority
+    sudo nice -20 bash -c "
+        compile_and_run sample_program $response_times_file
+        compile_and_run SJF_implementation $response_times_file
+        compile_and_run FCFS_implementation $response_times_file
+        compile_and_run MLFQ_implementation $response_times_file
+    "
 
     echo "Run $i completed. Results saved to $response_times_file"
     echo ""

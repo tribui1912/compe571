@@ -18,10 +18,10 @@
 #define WORKLOAD3 25000
 #define WORKLOAD4 10000
 
-#define QUANTUM1 1000
-#define QUANTUM2 1000
-#define QUANTUM3 1000
-#define QUANTUM4 1000
+#define QUANTUM1 5000
+#define QUANTUM2 5000
+#define QUANTUM3 5000
+#define QUANTUM4 5000
 
 /************************************************************************************************ 
 					DO NOT CHANGE THE FUNCTION IMPLEMENTATION
@@ -54,7 +54,7 @@ struct Process {
     const char *name;
     int quantum;
     struct timeval start_time;
-    struct timeval completion_time;
+    long response_time;
     int has_started;
 };
 
@@ -101,11 +101,16 @@ int main(int argc, char const *argv[])
 	}
 	kill(pid4, SIGSTOP);
 
+	int quantum = QUANTUM1;  // Default value
+	if (argc > 1) {
+		quantum = atoi(argv[1]);
+	}
+
 	struct Process processes[] = {
-		{pid1, &running1, "WORKLOAD1", QUANTUM1, {0}, {0}, 0},
-		{pid2, &running2, "WORKLOAD2", QUANTUM2, {0}, {0}, 0},
-		{pid3, &running3, "WORKLOAD3", QUANTUM3, {0}, {0}, 0},
-		{pid4, &running4, "WORKLOAD4", QUANTUM4, {0}, {0}, 0}
+		{pid1, &running1, "WORKLOAD1", quantum, {0}, 0, 0},
+		{pid2, &running2, "WORKLOAD2", quantum, {0}, 0, 0},
+		{pid3, &running3, "WORKLOAD3", quantum, {0}, 0, 0},
+		{pid4, &running4, "WORKLOAD4", quantum, {0}, 0, 0}
 	};
 	int num_processes = sizeof(processes) / sizeof(processes[0]);
 
@@ -113,26 +118,33 @@ int main(int argc, char const *argv[])
 	{
 		for (int i = 0; i < num_processes; i++) {
 			if (*processes[i].running > 0) {
-				kill(processes[i].pid, SIGCONT);
-				
 				if (!processes[i].has_started) {
 					gettimeofday(&processes[i].start_time, NULL);
 					processes[i].has_started = 1;
 				}
 
+				kill(processes[i].pid, SIGCONT);
 				usleep(processes[i].quantum);
 				kill(processes[i].pid, SIGSTOP);
-				waitpid(processes[i].pid, processes[i].running, WNOHANG);
 
-				if (*processes[i].running == 0) {
-					gettimeofday(&processes[i].completion_time, NULL);
-					long turnaround_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
-					printf("Response time for %s: %ld microseconds\n", processes[i].name, turnaround_time);
+				if(waitpid(processes[i].pid, processes[i].running, WNOHANG) > 0) {
+					struct timeval finish_time;
+					gettimeofday(&finish_time, NULL);
+					processes[i].response_time = (finish_time.tv_sec * 1000000 + finish_time.tv_usec) - 
+												 (processes[i].start_time.tv_sec * 1000000 + processes[i].start_time.tv_usec);
+					printf("Response time for %s: %ld microseconds\n", processes[i].name, processes[i].response_time);
 					printf("Process %s has completed\n", processes[i].name);
 				}
 			}
 		}
 	}
+
+	// Calculate and print average response time
+	long total_response_time = 0;
+	for (int i = 0; i < num_processes; i++) {
+		total_response_time += processes[i].response_time;
+	}
+	printf("Average response time: %ld microseconds\n", total_response_time / num_processes);
 
 	return 0;
 }

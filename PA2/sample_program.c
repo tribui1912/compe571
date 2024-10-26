@@ -18,10 +18,10 @@
 #define WORKLOAD3 25000
 #define WORKLOAD4 10000
 
-#define QUANTUM1 5000
-#define QUANTUM2 5000
-#define QUANTUM3 5000
-#define QUANTUM4 5000
+#define QUANTUM1 7500
+#define QUANTUM2 7500
+#define QUANTUM3 7500
+#define QUANTUM4 7500
 
 /************************************************************************************************ 
 					DO NOT CHANGE THE FUNCTION IMPLEMENTATION
@@ -101,7 +101,8 @@ int main(int argc, char const *argv[])
 	}
 	kill(pid4, SIGSTOP);
 
-	int quantum = QUANTUM1;  // Default value
+	// Use defined QUANTUM1 if no argument is provided, otherwise use the argument
+	int quantum = QUANTUM1;  // Default to the defined QUANTUM1
 	if (argc > 1) {
 		quantum = atoi(argv[1]);
 	}

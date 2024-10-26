@@ -18,10 +18,10 @@
 #define WORKLOAD3 25000
 #define WORKLOAD4 10000
 
-#define QUANTUM1 5000
-#define QUANTUM2 5000
-#define QUANTUM3 5000
-#define QUANTUM4 5000
+#define QUANTUM1 75000
+#define QUANTUM2 75000
+#define QUANTUM3 75000
+#define QUANTUM4 75000
 
 /************************************************************************************************ 
 					DO NOT CHANGE THE FUNCTION IMPLEMENTATION
@@ -70,8 +70,8 @@ int main(int argc, char const *argv[])
 	int running1 = 1, running2 = 1, running3 = 1, running4 = 1;
 	struct timeval current_time;
 
-	// Parse command-line argument for quantum
-	int quantum = QUANTUM1;  // Default value
+	// Use defined QUANTUM if no argument is provided, otherwise use the argument
+	int quantum = QUANTUM1;  // Default to the defined QUANTUM1
 	if (argc > 1) {
 		quantum = atoi(argv[1]);
 	}

@@ -13,15 +13,15 @@
 		the time quantum values for Round Robin scheduling for each task.
 *************************************************************************************************/
 
-// #define WORKLOAD1 100000
-// #define WORKLOAD2 100000
-// #define WORKLOAD3 100000
-// #define WORKLOAD4 100000
-
 #define WORKLOAD1 100000
-#define WORKLOAD2 50000
-#define WORKLOAD3 25000
-#define WORKLOAD4 10000
+#define WORKLOAD2 100000
+#define WORKLOAD3 100000
+#define WORKLOAD4 100000
+
+// #define WORKLOAD1 100000
+// #define WORKLOAD2 50000
+// #define WORKLOAD3 25000
+// #define WORKLOAD4 10000
 
 #define QUANTUM1 75000
 #define QUANTUM2 75000
@@ -185,19 +185,27 @@ int main(int argc, char const *argv[])
 		for (int i = 0; i < num_processes; i++) {
 			if (!processes[i].in_first_queue && *(processes[i].running) > 0) {
 				printf("Running process %s in second queue\n", processes[i].name);
-				kill(processes[i].pid, SIGCONT);
+				
+				// Measure SIGCONT time
 				gettimeofday(&timing.start, NULL);
-				waitpid(processes[i].pid, processes[i].running, 0);
+				kill(processes[i].pid, SIGCONT);
 				gettimeofday(&timing.end, NULL);
 				timing.total_time += get_elapsed_time(timing.start, timing.end);
 				timing.switch_count++;
-				if (!processes[i].has_completed) {
-					gettimeofday(&processes[i].completion_time, NULL);
-					processes[i].has_completed = 1;
-					processes[i].response_time = get_elapsed_time(processes[i].start_time, processes[i].completion_time);
-					printf("Response time for %s: %ld microseconds\n", processes[i].name, processes[i].response_time);
+
+				// Wait for process to complete
+				waitpid(processes[i].pid, processes[i].running, 0);
+
+				// Measure SIGSTOP time (if process isn't already completed)
+				if (*(processes[i].running) > 0) {
+					gettimeofday(&timing.start, NULL);
+					kill(processes[i].pid, SIGSTOP);
+					gettimeofday(&timing.end, NULL);
+					timing.total_time += get_elapsed_time(timing.start, timing.end);
+					timing.switch_count++;
 				}
-				printf("Process %s completed in second queue\n", processes[i].name);
+
+				// ... rest of the code for completion time and response time ...
 			}
 		}
 	}

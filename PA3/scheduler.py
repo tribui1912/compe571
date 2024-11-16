@@ -2,6 +2,7 @@ import sys
 from dataclasses import dataclass
 from typing import List, Tuple, Dict
 from queue import PriorityQueue
+from math import ceil
 
 @dataclass
 class Task:
@@ -72,7 +73,6 @@ class Scheduler:
             self.task_instances[task.name] = None
 
     def create_task_instance(self, task: Task, release_time: int) -> TaskInstance:
-        """Create a new task instance with proper deadline calculation"""
         instance = TaskInstance(
             task=task,
             release_time=release_time,
@@ -85,7 +85,6 @@ class Scheduler:
         return instance
 
     def get_next_release_time(self) -> Tuple[int, List[Task]]:
-        """Get the next release time and all tasks that should be released then"""
         next_time = float('inf')
         tasks_to_release = []
         
@@ -109,7 +108,8 @@ class Scheduler:
         best_freq = self.cpu_power.frequencies[0]
         
         for freq in self.cpu_power.frequencies:
-            scaled_wcet = task_instance.remaining_time * (self.cpu_power.frequencies[0] / freq)
+            # Scale WCET and round up to nearest integer
+            scaled_wcet = ceil(task_instance.remaining_time * (self.cpu_power.frequencies[0] / freq))
             if scaled_wcet <= time_available:
                 active_energy = calculate_energy(self.cpu_power.active_power[freq], scaled_wcet)
                 idle_time = time_available - scaled_wcet
@@ -123,20 +123,16 @@ class Scheduler:
         return best_freq
 
     def update_ready_queue(self, current_time: int, new_tasks: List[Task]) -> None:
-        """Update ready queue with new and existing tasks"""
-        # Create instances for new tasks
         for task in new_tasks:
             instance = self.create_task_instance(task, current_time)
             self.ready_queue.put(instance)
             
-        # Check for completed tasks that need to be removed
         active_tasks = []
         while not self.ready_queue.empty():
             instance = self.ready_queue.get()
             if instance.remaining_time > 0 and instance.deadline > current_time:
                 active_tasks.append(instance)
                 
-        # Put active tasks back in queue
         for instance in active_tasks:
             self.ready_queue.put(instance)
 
@@ -148,14 +144,10 @@ class Scheduler:
         self.update_ready_queue(0, self.tasks)
         
         while current_time < self.total_time:
-            # Get next release time and tasks
             next_release_time, next_release_tasks = self.get_next_release_time()
-            
-            # Get current highest priority task
             current_task = None if self.ready_queue.empty() else self.ready_queue.get()
             
             if not current_task:
-                # Handle idle time
                 if next_release_time == float('inf') or next_release_time >= self.total_time:
                     idle_duration = self.total_time - current_time
                     if idle_duration > 0:
@@ -170,36 +162,31 @@ class Scheduler:
                     self.update_ready_queue(current_time, next_release_tasks)
                     continue
             
-            # Calculate execution duration until next event
             time_until_release = next_release_time - current_time if next_release_time < float('inf') else current_task.remaining_time
             
-            # Choose frequency
             if energy_efficient:
                 chosen_freq = self.find_best_frequency(current_task, current_time)
             else:
                 chosen_freq = self.cpu_power.frequencies[0]
             
-            # Calculate actual execution time and progress
+            # Calculate execution time and round up to integer
             scale_factor = self.cpu_power.frequencies[0] / chosen_freq
-            scaled_remaining = current_task.remaining_time * scale_factor
+            scaled_remaining = ceil(current_task.remaining_time * scale_factor)
             actual_duration = min(scaled_remaining, time_until_release)
-            execution_progress = actual_duration / scale_factor
             
-            # Update task state
+            # Calculate execution progress (rounded up)
+            execution_progress = ceil(actual_duration / scale_factor)
             current_task.remaining_time -= execution_progress
             
-            # Add to schedule
             energy = calculate_energy(self.cpu_power.active_power[chosen_freq], actual_duration)
             self.schedule.append((current_time, current_task.task.name, chosen_freq,
                                 actual_duration, energy))
             
-            # Handle task completion and next release
             if current_task.remaining_time > 0:
                 self.ready_queue.put(current_task)
             
             current_time += actual_duration
             
-            # Handle any releases that occurred during execution
             if current_time >= next_release_time:
                 self.update_ready_queue(next_release_time, next_release_tasks)
 
@@ -211,9 +198,7 @@ class Scheduler:
         for start_time, task_name, freq, duration, energy in self.schedule:
             if task_name == "IDLE":
                 idle_time += duration
-                print(f"{int(start_time)} {task_name} {freq} {duration:.1f} {energy:.3f}J")
-            else:
-                print(f"{int(start_time)} {task_name} {int(freq)} {duration:.1f} {energy:.3f}J")
+            print(f"{start_time} {task_name} {freq} {duration} {energy:.3f}J")
             total_energy += energy
         
         print(f"\nTotal Energy Consumption: {total_energy:.3f}J")

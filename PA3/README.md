@@ -7,8 +7,8 @@ Energy efficient can be EE or not EE (leave blank for no EE).
 
 # For input should be in format:
 ```
-<# of tasks> < the time the system will execute up to in seconds> <active CPU power @ 1188 Mhz> <active CPU power @ 918 Mhz> <active CPU power @ 648Mhz> <active CPU power @ 384 Mhz> <idle CPU power @ lowest frequency>
-All other rows represent: <name of task> <deadline/period> <WCET @ 1188 Mhz> <WCET @ 918 Mhz> <WCET @ 648 Mhz> <WCET @ 384 Mhz>
+First row: <# of tasks> < the time the system will execute up to in seconds> <active CPU power @ 1188 Mhz> <active CPU power @ 918 Mhz> <active CPU power @ 648Mhz> <active CPU power @ 384 Mhz> <idle CPU power @ lowest frequency>
+All other rows: <name of task> <deadline/period> <WCET @ 1188 Mhz> <WCET @ 918 Mhz> <WCET @ 648 Mhz> <WCET @ 384 Mhz>
 ```
 
 # Output Explained:
